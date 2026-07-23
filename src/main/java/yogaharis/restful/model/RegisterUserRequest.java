@@ -13,16 +13,25 @@ import lombok.NoArgsConstructor;
 @Builder
 public class RegisterUserRequest {
 
-    @NotBlank
-    @Size(max = 100)
+    @NotBlank(message = "{username.notblank}")
+    @Size(
+            message = "{username.size}",
+            max = 100
+    )
     private String username;
 
-    @NotBlank
-    @Size(max = 100)
+    @NotBlank(message = "{password.notblank}")
+    @Size(
+            message = "{password.size}",
+            max = 100
+    )
     private String password;
 
-    @NotBlank
-    @Size(max = 100)
+    @NotBlank(message = "{name.notblank}")
+    @Size(
+            message = "{name.size}",
+            max = 100
+    )
     private String name;
 
 }

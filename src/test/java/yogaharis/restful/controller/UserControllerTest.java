@@ -57,7 +57,7 @@ class UserControllerTest {
             });
             assertNotNull(userServiceWebResponse.getData());
 
-            assertNull(userServiceWebResponse.getError());
+            assertNull(userServiceWebResponse.getErrors());
                 }
         );
     }
@@ -80,7 +80,7 @@ class UserControllerTest {
             WebResponse<String> response = objectMapper.readValue(result.getResponse().getContentAsString(), new TypeReference<>() {
             });
 
-            assertNotNull(response.getError());
+            assertNotNull(response.getErrors());
         });
     }
 
@@ -108,7 +108,7 @@ class UserControllerTest {
             WebResponse<String> response = objectMapper.readValue(result.getResponse().getContentAsString(), new TypeReference<>() {
             });
 
-            assertNotNull(response.getError());
+            assertNotNull(response.getErrors());
         });
     }
 }
