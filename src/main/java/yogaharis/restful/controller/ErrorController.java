@@ -19,7 +19,7 @@ public class ErrorController {
 
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<WebResponse<String>> responseStatusException(ResponseStatusException exception){
-        WebResponse<String> build = WebResponse.<String>builder().error(exception.getMessage()).build();
+        WebResponse<String> build = WebResponse.<String>builder().error(exception.getReason()).build();
         return ResponseEntity.status(exception.getStatusCode()).body(build);
     }
 }

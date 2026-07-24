@@ -10,9 +10,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
 import yogaharis.restful.entity.User;
-import yogaharis.restful.model.RegisterUserRequest;
-import yogaharis.restful.model.UserResponse;
-import yogaharis.restful.model.WebResponse;
+import yogaharis.restful.model.*;
 import yogaharis.restful.repository.UserRepository;
 import yogaharis.restful.security.BCrypt;
 
@@ -109,6 +107,95 @@ class UserControllerTest {
             });
 
             assertNotNull(response.getError());
+        });
+    }
+
+    @Test
+    void testLoginSuccess() throws Exception {
+        User user = new User();
+        user.setUsername("test");
+        user.setPassword(BCrypt.hashpw("test", BCrypt.gensalt()));
+        user.setName("Test");
+        userRepository.save(user);
+
+        LoginUserRequest loginUserRequest = LoginUserRequest.builder()
+                .username("test")
+                .password("test")
+                .build();
+
+        mockMvc.perform(
+                post("/api/users/login")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginUserRequest))
+        ).andExpectAll(
+                status().isOk()
+        ).andDo(result -> {
+            WebResponse<TokenResponse> response = objectMapper.readValue(result.getResponse().getContentAsString(), new TypeReference<WebResponse<TokenResponse>>() {
+            });
+
+            assertNull(response.getError());
+            assertNotNull(response.getData().getToken());
+            assertNotNull(response.getData().getExpiredAt());
+
+            User userDb = userRepository.findById("test").orElse(null);
+            assertNotNull(userDb);
+            assertEquals(userDb.getToken(), response.getData().getToken());
+            assertEquals(userDb.getExpiredAt(), response.getData().getExpiredAt());
+        });
+    }
+
+    @Test
+    void testLoginUserNotFound() throws Exception {
+        LoginUserRequest loginUserRequest = LoginUserRequest.builder()
+                .username("test")
+                .password("test")
+                .build();
+
+        mockMvc.perform(
+                post("/api/users/login")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginUserRequest))
+        ).andExpectAll(
+                status().isUnauthorized()
+        ).andDo(result -> {
+            WebResponse<TokenResponse> response = objectMapper.readValue(result.getResponse().getContentAsString(), new TypeReference<WebResponse<TokenResponse>>() {
+            });
+
+            assertNull(response.getData());
+            assertNotNull(response.getError());
+            assertEquals("Username or Password wrong", response.getError());
+        });
+    }
+
+    @Test
+    void testLoginWrongPassword() throws Exception {
+        User user = new User();
+        user.setUsername("test");
+        user.setPassword(BCrypt.hashpw("test", BCrypt.gensalt()));
+        user.setName("Test");
+        userRepository.save(user);
+
+        LoginUserRequest loginUserRequest = LoginUserRequest.builder()
+                .username("test")
+                .password("salah")
+                .build();
+
+        mockMvc.perform(
+                post("/api/users/login")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(loginUserRequest))
+        ).andExpectAll(
+                status().isUnauthorized()
+        ).andDo(result -> {
+            WebResponse<TokenResponse> response = objectMapper.readValue(result.getResponse().getContentAsString(), new TypeReference<WebResponse<TokenResponse>>() {
+            });
+
+            assertNull(response.getData());
+            assertNotNull(response.getError());
+            assertEquals("Username or Password wrong", response.getError());
         });
     }
 }
