@@ -58,4 +58,12 @@ public class UserServiceImpl implements UserService {
 
         return TokenResponse.builder().token(user.getToken()).expiredAt(user.getExpiredAt()).build();
     }
+
+    @Override
+    public UserResponse get(User user) {
+        return UserResponse.builder()
+                .username(user.getUsername())
+                .name(user.getName())
+                .build();
+    }
 }

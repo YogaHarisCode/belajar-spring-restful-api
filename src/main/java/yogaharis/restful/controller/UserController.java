@@ -4,9 +4,11 @@ import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+import yogaharis.restful.entity.User;
 import yogaharis.restful.model.*;
 import yogaharis.restful.service.UserService;
 
@@ -36,5 +38,14 @@ public class UserController {
     public WebResponse<TokenResponse> login(@RequestBody LoginUserRequest request){
         return WebResponse.<TokenResponse>builder().data(userService.login(request))
                 .build();
+    }
+
+    @GetMapping(
+            path = "/api/users/current",
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public WebResponse<UserResponse> get(User user){
+        UserResponse userResponse = userService.get(user);
+        return WebResponse.<UserResponse>builder().data(userResponse).build();
     }
 }

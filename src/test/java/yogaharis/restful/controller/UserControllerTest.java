@@ -14,6 +14,9 @@ import yogaharis.restful.model.*;
 import yogaharis.restful.repository.UserRepository;
 import yogaharis.restful.security.BCrypt;
 
+import java.time.Duration;
+import java.time.Instant;
+
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -196,6 +199,99 @@ class UserControllerTest {
             assertNull(response.getData());
             assertNotNull(response.getError());
             assertEquals("Username or Password wrong", response.getError());
+        });
+    }
+
+    @Test
+    void testGetUserNotSendToken() throws Exception {
+        mockMvc.perform(
+                get("/api/users/current")
+                        .accept(MediaType.APPLICATION_JSON)
+        ).andExpectAll(
+                status().isUnauthorized()
+        ).andDo(result ->{
+            WebResponse<UserResponse> response = objectMapper.readValue(result.getResponse().getContentAsString(), new TypeReference<WebResponse<UserResponse>>() {
+            });
+
+            assertNotNull(response.getError());
+            assertEquals("Unauthorized", response.getError());
+        });
+    }
+
+    @Test
+    void testGetUserNotValidToken() throws Exception {
+        User user = new User();
+        user.setUsername("test");
+        user.setPassword(BCrypt.hashpw("test", BCrypt.gensalt()));
+        user.setName("Test");
+        user.setToken("test");
+        user.setExpiredAt(Instant.now().plus(Duration.ofDays(30)).toEpochMilli());
+        userRepository.save(user);
+
+        mockMvc.perform(
+                get("/api/users/current")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .header("X-API-TOKEN", "salah")
+        ).andExpectAll(
+                status().isUnauthorized()
+        ).andDo(result ->{
+            WebResponse<UserResponse> response = objectMapper.readValue(result.getResponse().getContentAsString(), new TypeReference<WebResponse<UserResponse>>() {
+            });
+
+            assertNotNull(response.getError());
+            assertEquals("Unauthorized", response.getError());
+        });
+    }
+
+    @Test
+    void testGetUserExpiredToken() throws Exception {
+        User user = new User();
+        user.setUsername("test");
+        user.setPassword(BCrypt.hashpw("test", BCrypt.gensalt()));
+        user.setName("Test");
+        user.setToken("test");
+        user.setExpiredAt(Instant.now().minus(Duration.ofDays(1)).toEpochMilli());
+        userRepository.save(user);
+
+        mockMvc.perform(
+                get("/api/users/current")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .header("X-API-TOKEN", "test")
+        ).andExpectAll(
+                status().isUnauthorized()
+        ).andDo(result ->{
+            WebResponse<UserResponse> response = objectMapper.readValue(result.getResponse().getContentAsString(), new TypeReference<WebResponse<UserResponse>>() {
+            });
+
+            assertNotNull(response.getError());
+            assertEquals("Unauthorized", response.getError());
+        });
+    }
+
+    @Test
+    void testGetUserSuccess() throws Exception {
+        User user = new User();
+        user.setUsername("test");
+        user.setPassword(BCrypt.hashpw("test", BCrypt.gensalt()));
+        user.setName("Test");
+        user.setToken("test");
+        user.setExpiredAt(Instant.now().plus(Duration.ofDays(30)).toEpochMilli());
+        userRepository.save(user);
+
+        mockMvc.perform(
+                get("/api/users/current")
+                        .accept(MediaType.APPLICATION_JSON)
+                        .header("X-API-TOKEN", "test")
+        ).andExpectAll(
+                status().isOk()
+        ).andDo(result ->{
+            WebResponse<UserResponse> response = objectMapper.readValue(result.getResponse().getContentAsString(), new TypeReference<WebResponse<UserResponse>>() {
+            });
+
+            assertNull(response.getError());
+            assertNotNull(response.getData());
+            assertEquals("Test", response.getData().getName());
+            assertEquals("test", response.getData().getUsername());
         });
     }
 }
