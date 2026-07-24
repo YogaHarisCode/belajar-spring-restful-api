@@ -15,21 +15,17 @@ import java.util.stream.Collectors;
 public class ErrorController {
 
     @ExceptionHandler(ConstraintViolationException.class)
-    public ResponseEntity<WebResponse<String>> constraintViolationException(ConstraintViolationException exception) {
+    public ResponseEntity<WebResponse<String>> constraintViolationException(ConstraintViolationException exception){
         String message = exception.getConstraintViolations().stream()
                 .map(ConstraintViolation::getMessage)
                 .collect(Collectors.joining(", "));
-
         WebResponse<String> build = WebResponse.<String>builder().errors(message).build();
-
         return ResponseEntity.badRequest().body(build);
     }
 
     @ExceptionHandler(ResponseStatusException.class)
-    public ResponseEntity<WebResponse<String>> responseStatusException(ResponseStatusException exception) {
-
+    public ResponseEntity<WebResponse<String>> responseStatusException(ResponseStatusException exception){
         WebResponse<String> build = WebResponse.<String>builder().errors(exception.getReason()).build();
-
         return ResponseEntity.status(exception.getStatusCode()).body(build);
     }
 }

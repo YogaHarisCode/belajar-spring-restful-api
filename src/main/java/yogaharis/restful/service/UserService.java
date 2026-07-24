@@ -2,12 +2,17 @@ package yogaharis.restful.service;
 
 import jakarta.validation.Valid;
 import org.springframework.validation.annotation.Validated;
-import yogaharis.restful.model.RegisterUserRequest;
-import yogaharis.restful.model.UserResponse;
+import yogaharis.restful.entity.User;
+import yogaharis.restful.model.*;
 
 @Validated
 public interface UserService {
 
-    @Valid
     UserResponse register(@Valid RegisterUserRequest userRequest);
+
+    TokenResponse login(@Valid LoginUserRequest request);
+
+    UserResponse get(User user);
+
+    UserResponse update(User user, @Valid UpdateUserRequest request);
 }
