@@ -84,4 +84,13 @@ public class UserServiceImpl implements UserService {
                 .name(user.getName())
                 .build();
     }
+
+    @Override
+    @Transactional
+    public void logout(User user) {
+        user.setToken(null);
+        user.setExpiredAt(null);
+
+        userRepository.save(user);
+    }
 }

@@ -56,4 +56,13 @@ public class UserController {
                 .data(userService.update(user, request))
                 .build();
     }
+
+    @DeleteMapping(
+            path = "/api/users/logout",
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public WebResponse<String> logout(User user){
+        userService.logout(user);
+        return WebResponse.<String>builder().data("OK").build();
+    }
 }

@@ -15,4 +15,6 @@ public interface UserService {
     UserResponse get(User user);
 
     UserResponse update(User user, @Valid UpdateUserRequest request);
+
+    void logout(User user);
 }
