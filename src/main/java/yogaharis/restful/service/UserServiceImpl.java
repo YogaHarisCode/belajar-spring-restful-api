@@ -6,15 +6,13 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import yogaharis.restful.entity.User;
-import yogaharis.restful.model.LoginUserRequest;
-import yogaharis.restful.model.RegisterUserRequest;
-import yogaharis.restful.model.TokenResponse;
-import yogaharis.restful.model.UserResponse;
+import yogaharis.restful.model.*;
 import yogaharis.restful.repository.UserRepository;
 import yogaharis.restful.security.BCrypt;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -60,7 +58,27 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional
     public UserResponse get(User user) {
+        return UserResponse.builder()
+                .username(user.getUsername())
+                .name(user.getName())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public UserResponse update(User user, UpdateUserRequest request) {
+        if (Objects.nonNull(request.getName()) && !request.getName().isBlank()){
+            user.setName(request.getName());
+        }
+
+        if (Objects.nonNull(request.getPassword()) && !request.getPassword().isBlank()){
+            user.setPassword(BCrypt.hashpw(request.getPassword(), BCrypt.gensalt()));
+        }
+
+        userRepository.save(user);
+
         return UserResponse.builder()
                 .username(user.getUsername())
                 .name(user.getName())

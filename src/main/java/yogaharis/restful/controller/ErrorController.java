@@ -1,5 +1,6 @@
 package yogaharis.restful.controller;
 
+import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -7,13 +8,18 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.server.ResponseStatusException;
 import yogaharis.restful.model.WebResponse;
 
+import java.util.stream.Collectors;
+
 
 @RestControllerAdvice
 public class ErrorController {
 
     @ExceptionHandler(ConstraintViolationException.class)
     public ResponseEntity<WebResponse<String>> constraintViolationException(ConstraintViolationException exception){
-        WebResponse<String> build = WebResponse.<String>builder().error(exception.getMessage()).build();
+        String message = exception.getConstraintViolations().stream()
+                .map(ConstraintViolation::getMessage)
+                .collect(Collectors.joining(", "));
+        WebResponse<String> build = WebResponse.<String>builder().error(message).build();
         return ResponseEntity.badRequest().body(build);
     }
 

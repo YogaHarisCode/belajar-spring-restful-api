@@ -4,10 +4,7 @@ import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import yogaharis.restful.entity.User;
 import yogaharis.restful.model.*;
 import yogaharis.restful.service.UserService;
@@ -47,5 +44,16 @@ public class UserController {
     public WebResponse<UserResponse> get(User user){
         UserResponse userResponse = userService.get(user);
         return WebResponse.<UserResponse>builder().data(userResponse).build();
+    }
+
+    @PatchMapping(
+            path = "/api/users/current",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public WebResponse<UserResponse> update(User user, @RequestBody UpdateUserRequest request){
+        return WebResponse.<UserResponse>builder()
+                .data(userService.update(user, request))
+                .build();
     }
 }
