@@ -9,6 +9,7 @@ import yogaharis.restful.entity.Contact;
 import yogaharis.restful.entity.User;
 import yogaharis.restful.model.ContactResponse;
 import yogaharis.restful.model.CreateContactRequest;
+import yogaharis.restful.model.UpdateContactRequest;
 import yogaharis.restful.repository.ContactRepository;
 
 import java.util.UUID;
@@ -46,6 +47,27 @@ public class ContactServiceImpl implements ContactService {
     public ContactResponse get(User user, String id) {
         Contact contact = contactRepository.findFirstByUserAndId(user, id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Contact not found"));
+
+        return ContactResponse.builder()
+                .id(contact.getId())
+                .firstName(contact.getFirstName())
+                .lastName(contact.getLastName())
+                .email(contact.getEmail())
+                .phone(contact.getPhone())
+                .build();
+    }
+
+    @Transactional
+    @Override
+    public ContactResponse update(User user, UpdateContactRequest request) {
+        Contact contact = contactRepository.findFirstByUserAndId(user, request.getId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Contact not found"));
+
+        contact.setFirstName(request.getFirstName());
+        contact.setLastName(request.getLastName());
+        contact.setEmail(request.getEmail());
+        contact.setPhone(request.getPhone());
+        contactRepository.save(contact);
 
         return ContactResponse.builder()
                 .id(contact.getId())

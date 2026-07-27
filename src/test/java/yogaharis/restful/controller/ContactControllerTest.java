@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.client.RestTestClient;
@@ -15,6 +16,7 @@ import yogaharis.restful.entity.Contact;
 import yogaharis.restful.entity.User;
 import yogaharis.restful.model.ContactResponse;
 import yogaharis.restful.model.CreateContactRequest;
+import yogaharis.restful.model.UpdateContactRequest;
 import yogaharis.restful.model.WebResponse;
 import yogaharis.restful.repository.ContactRepository;
 import yogaharis.restful.repository.UserRepository;
@@ -45,12 +47,18 @@ class ContactControllerTest {
     private UserRepository userRepository;
 
     private Contact contact;
+    
+    private RestTestClient client;
 
     @BeforeEach
     void setUp() {
         userRepository.deleteAll();
         contactRepository.deleteAll();
 
+        client = RestTestClient.bindTo(mockMvc)
+                .baseUrl("http:localhost:8080/")
+                .build();
+        
         User user = new User();
         user.setUsername("test");
         user.setPassword("test");
@@ -242,4 +250,6 @@ class ContactControllerTest {
             assertTrue(contactRepository.existsById(response.getData().getId()));
         });
     }
+
+
 }
