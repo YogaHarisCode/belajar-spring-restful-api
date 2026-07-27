@@ -398,4 +398,105 @@ class ContactControllerTest {
             assertEquals(request.getEmail(), response.getData().getEmail());
         });
     }
+
+    @Test
+    void testDeleteContactWithoutTokenHeader() throws Exception {
+        mockMvc.perform(
+                delete("/api/contacts/{contactId}", contact.getId())
+        ).andExpectAll(
+                status().isUnauthorized()
+        ).andDo(result -> {
+            WebResponse<String> response = objectMapper.readValue(result.getResponse().getContentAsString(), new TypeReference<>() {
+            });
+
+            assertNotNull(response.getErrors());
+            assertEquals("Unauthorized", response.getErrors());
+        });
+    }
+
+    @Test
+    void testDeleteContactTokenExpired() throws Exception {
+        user.setExpiredAt(Instant.now().minus(Duration.ofMinutes(30)).toEpochMilli());
+        userRepository.save(user);
+
+        mockMvc.perform(
+                delete("/api/contacts/{contactId}", contact.getId())
+                        .header("X-API-TOKEN", user.getToken())
+        ).andExpectAll(
+                status().isUnauthorized()
+        ).andDo(result -> {
+            WebResponse<String> response = objectMapper.readValue(result.getResponse().getContentAsString(), new TypeReference<>() {
+            });
+
+            assertNotNull(response.getErrors());
+            assertEquals("Unauthorized", response.getErrors());
+        });
+    }
+
+    @Test
+    void testDeleteContactNotFound() throws Exception {
+        mockMvc.perform(
+                delete("/api/contacts/{contactId}", 12345)
+                        .header("X-API-TOKEN", user.getToken())
+        ).andExpectAll(
+                status().isNotFound()
+        ).andDo(result -> {
+            WebResponse<String> response = objectMapper.readValue(result.getResponse().getContentAsString(), new TypeReference<>() {
+            });
+
+            assertNotNull(response.getErrors());
+            assertEquals("Contact not found", response.getErrors());
+        });
+    }
+
+    @Test
+    void testDeleteContactAnotherUser() throws Exception {
+        User anotherUser = new User();
+        anotherUser.setUsername("budi");
+        anotherUser.setPassword("rahasia");
+        anotherUser.setName("Budi Lain");
+        anotherUser.setToken("token-lain");
+        anotherUser.setExpiredAt(Instant.now().plusSeconds(3600).toEpochMilli());
+        userRepository.save(anotherUser);
+
+        Contact contactMilikOrangLain = new Contact();
+        contactMilikOrangLain.setId(UUID.randomUUID().toString());
+        contactMilikOrangLain.setUser(anotherUser);
+        contactMilikOrangLain.setFirstName("Siti");
+        contactMilikOrangLain.setLastName("Aminah");
+        contactRepository.save(contactMilikOrangLain);
+
+        mockMvc.perform(
+                delete("/api/contacts/{contactId}", contactMilikOrangLain.getId())
+                        .header("X-API-TOKEN", user.getToken())
+        ).andExpectAll(
+                status().isNotFound()
+        ).andDo(result -> {
+            WebResponse<String> response = objectMapper.readValue(result.getResponse().getContentAsString(), new TypeReference<>() {
+            });
+
+            assertNotNull(response.getErrors());
+            assertEquals("Contact not found", response.getErrors());
+        });
+    }
+
+    @Test
+    void testDeleteContactSuccess() throws Exception {
+        mockMvc.perform(
+                delete("/api/contacts/{contactId}", contact.getId())
+                        .header("X-API-TOKEN", user.getToken())
+        ).andExpectAll(
+                status().isOk()
+        ).andDo(result -> {
+            WebResponse<String> response = objectMapper.readValue(result.getResponse().getContentAsString(), new TypeReference<>() {
+            });
+
+            assertNull(response.getErrors());
+            assertNotNull(response.getData());
+            assertEquals("OK", response.getData());
+
+            Contact contactDb = contactRepository.findById(contact.getId()).orElse(null);
+            assertNull(contactDb);
+        });
+    }
 }

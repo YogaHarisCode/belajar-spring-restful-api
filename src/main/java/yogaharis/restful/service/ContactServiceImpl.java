@@ -77,4 +77,13 @@ public class ContactServiceImpl implements ContactService {
                 .phone(contact.getPhone())
                 .build();
     }
+
+    @Transactional
+    @Override
+    public void delete(User user, String id) {
+        Contact contact = contactRepository.findFirstByUserAndId(user, id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Contact not found"));
+
+        contactRepository.delete(contact);
+    }
 }
