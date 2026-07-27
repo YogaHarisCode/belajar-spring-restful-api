@@ -46,7 +46,7 @@ public class ContactController {
             consumes = MediaType.APPLICATION_JSON_VALUE
     )
     public WebResponse<ContactResponse> update(User user,
-                                               @Valid UpdateContactRequest request,
+                                               @RequestBody UpdateContactRequest request,
                                                @NotBlank(message = "id cannot null") @PathVariable(name = "contactId") String id){
         request.setId(id);
         ContactResponse update = contactService.update(user, request);
