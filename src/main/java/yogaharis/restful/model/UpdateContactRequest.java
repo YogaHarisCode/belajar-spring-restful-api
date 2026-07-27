@@ -1,5 +1,6 @@
 package yogaharis.restful.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
@@ -14,6 +15,7 @@ import lombok.NoArgsConstructor;
 @Builder
 public class UpdateContactRequest {
 
+    @JsonIgnore
     @NotBlank(message = "{id.notblank}")
     private String id;
 
