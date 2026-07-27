@@ -16,4 +16,6 @@ public interface ContactService {
     ContactResponse get(User user, @NotBlank(message = "id cannot blank") String id);
 
     ContactResponse update(User user, @Valid UpdateContactRequest request);
+
+    void delete(User user, @NotBlank(message = "id cannot blank") String id);
 }
