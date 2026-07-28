@@ -16,7 +16,7 @@ public class CreateAddressRequest {
 
     @JsonIgnore
     @NotBlank(message = "{contactId.notBlank}")
-    private String contact_id;
+    private String contactId;
 
     @Size(max = 200, message = "{street.size}")
     private String street;

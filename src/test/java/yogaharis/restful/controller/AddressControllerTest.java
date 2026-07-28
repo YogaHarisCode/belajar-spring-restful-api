@@ -1,6 +1,5 @@
 package yogaharis.restful.controller;
 
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,11 +9,12 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import tools.jackson.core.type.TypeReference;
 import tools.jackson.databind.ObjectMapper;
+import yogaharis.restful.entity.Address;
 import yogaharis.restful.entity.Contact;
 import yogaharis.restful.entity.User;
+import yogaharis.restful.model.AddressResponse;
 import yogaharis.restful.model.CreateAddressRequest;
 import yogaharis.restful.model.WebResponse;
-import yogaharis.restful.model.AddressResponse;
 import yogaharis.restful.repository.AddressRepository;
 import yogaharis.restful.repository.ContactRepository;
 import yogaharis.restful.repository.UserRepository;
@@ -23,6 +23,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -34,9 +35,6 @@ class AddressControllerTest {
     private MockMvc mockMvc;
 
     @Autowired
-    private ObjectMapper objectMapper;
-
-    @Autowired
     private UserRepository userRepository;
 
     @Autowired
@@ -45,47 +43,42 @@ class AddressControllerTest {
     @Autowired
     private AddressRepository addressRepository;
 
-    private User userA;
-    private User userB;
-    private Contact contactOfUserA;
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    private User user;
+    private Contact contact;
 
     @BeforeEach
     void setUp() {
-        // bersihkan data lama biar test idempotent
         addressRepository.deleteAll();
         contactRepository.deleteAll();
         userRepository.deleteAll();
 
-        // User A - pemilik contact yang valid
-        userA = new User();
-        userA.setUsername("usera");
-        userA.setPassword("rahasia");
-        userA.setName("User A");
-        userA.setToken("token-user-a");
-        userA.setExpiredAt(Instant.now().plusSeconds(3600).toEpochMilli());
-        userRepository.save(userA);
+        // User A yang login
+        user = new User();
+        user.setUsername("yoga");
+        user.setPassword("rahasia");
+        user.setName("Yoga Haris");
+        user.setToken("token-yoga");
+        user.setExpiredAt(Instant.now().plusSeconds(3600).toEpochMilli());
+        userRepository.save(user);
 
-        // User B - dipakai buat skenario contact bukan miliknya
-        userB = new User();
-        userB.setUsername("userb");
-        userB.setPassword("rahasia");
-        userB.setName("User B");
-        userB.setToken("token-user-b");
-        userB.setExpiredAt(Instant.now().plusSeconds(3600).toEpochMilli());
-        userRepository.save(userB);
-
-        contactOfUserA = new Contact();
-        contactOfUserA.setId(UUID.randomUUID().toString());
-        contactOfUserA.setFirstName("Budi");
-        contactOfUserA.setLastName("Santoso");
-        contactOfUserA.setEmail("budi@example.com");
-        contactOfUserA.setPhone("08123456789");
-        contactOfUserA.setUser(userA);
-        contactRepository.save(contactOfUserA);
+        // Contact milik User A
+        contact = new Contact();
+        contact.setId(UUID.randomUUID().toString());
+        contact.setFirstName("Budi");
+        contact.setLastName("Santoso");
+        contact.setEmail("budi@example.com");
+        contact.setPhone("081234567890");
+        contact.setUser(user);
+        contactRepository.save(contact);
     }
 
+    // ==================== CREATE ADDRESS ====================
+
     @Test
-    void createAddressUnauthorized() throws Exception {
+    void testCreateAddressUnauthorized() throws Exception {
         CreateAddressRequest request = CreateAddressRequest.builder()
                 .street("Jalan Sudirman No. 45")
                 .city("Jakarta Selatan")
@@ -95,18 +88,54 @@ class AddressControllerTest {
                 .build();
 
         mockMvc.perform(
-                post("/api/contacts/" + contactOfUserA.getId() + "/addresses")
+                post("/api/contacts/" + contact.getId() + "/addresses")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .accept(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request))
-                // sengaja tidak set header X-API-TOKEN
         ).andExpectAll(
                 status().isUnauthorized()
-        );
+        ).andDo(result -> {
+            WebResponse<String> response = objectMapper.readValue(
+                    result.getResponse().getContentAsString(), new TypeReference<>() {});
+            assertNotNull(response.getErrors());
+        });
     }
 
     @Test
-    void createAddressContactNotFound() throws Exception {
+    void testCreateAddressContactNotFound() throws Exception {
+        CreateAddressRequest request = CreateAddressRequest.builder()
+                .street("Jalan Sudirman No. 45")
+                .city("Jakarta Selatan")
+                .province("DKI Jakarta")
+                .country("Indonesia")
+                .postalCode("12190")
+                .build();
+
+        String contactIdTidakAda = UUID.randomUUID().toString();
+
+        mockMvc.perform(
+                post("/api/contacts/" + contactIdTidakAda + "/addresses")
+                        .header("X-API-TOKEN", "token-yoga")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request))
+        ).andExpectAll(
+                status().isNotFound()
+        ).andDo(result -> {
+            WebResponse<String> response = objectMapper.readValue(
+                    result.getResponse().getContentAsString(), new TypeReference<>() {});
+            assertNotNull(response.getErrors());
+        });
+    }
+
+    @Test
+    void testCreateAddressAnotherUser() throws Exception {
+        User anotherUser = new User();
+        anotherUser.setUsername("budi");
+        anotherUser.setPassword("rahasia");
+        anotherUser.setName("Budi Lain");
+        anotherUser.setToken("token-budi");
+        anotherUser.setExpiredAt(Instant.now().plusSeconds(3600).toEpochMilli());
+        userRepository.save(anotherUser);
+
         CreateAddressRequest request = CreateAddressRequest.builder()
                 .street("Jalan Sudirman No. 45")
                 .city("Jakarta Selatan")
@@ -116,19 +145,21 @@ class AddressControllerTest {
                 .build();
 
         mockMvc.perform(
-                post("/api/contacts/contact-id-yang-tidak-ada/addresses")
+                post("/api/contacts/" + contact.getId() + "/addresses")
+                        .header("X-API-TOKEN", "token-budi")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .accept(MediaType.APPLICATION_JSON)
-                        .header("X-API-TOKEN", userA.getToken())
                         .content(objectMapper.writeValueAsString(request))
         ).andExpectAll(
                 status().isNotFound()
-        );
+        ).andDo(result -> {
+            WebResponse<String> response = objectMapper.readValue(
+                    result.getResponse().getContentAsString(), new TypeReference<>() {});
+            assertNotNull(response.getErrors());
+        });
     }
 
     @Test
-    void createAddressAnotherUser() throws Exception {
-        // contactOfUserA valid, tapi diakses pakai token userB
+    void testCreateAddressSuccess() throws Exception {
         CreateAddressRequest request = CreateAddressRequest.builder()
                 .street("Jalan Sudirman No. 45")
                 .city("Jakarta Selatan")
@@ -138,55 +169,127 @@ class AddressControllerTest {
                 .build();
 
         mockMvc.perform(
-                post("/api/contacts/" + contactOfUserA.getId() + "/addresses")
+                post("/api/contacts/" + contact.getId() + "/addresses")
+                        .header("X-API-TOKEN", "token-yoga")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .accept(MediaType.APPLICATION_JSON)
-                        .header("X-API-TOKEN", userB.getToken())
                         .content(objectMapper.writeValueAsString(request))
         ).andExpectAll(
-                status().isNotFound()
-        );
+                status().isOk()
+        ).andDo(result -> {
+            WebResponse<AddressResponse> response = objectMapper.readValue(
+                    result.getResponse().getContentAsString(), new TypeReference<>() {});
+
+            assertNull(response.getErrors());
+            assertNotNull(response.getData().getId());
+            assertEquals("Jalan Sudirman No. 45", response.getData().getStreet());
+            assertEquals("Jakarta Selatan", response.getData().getCity());
+            assertEquals("DKI Jakarta", response.getData().getProvince());
+            assertEquals("Indonesia", response.getData().getCountry());
+            assertEquals("12190", response.getData().getPostalCode());
+
+            assertTrue(addressRepository.existsById(response.getData().getId()));
+            addressRepository.findById(response.getData().getId()).ifPresent(address ->
+                    assertEquals(contact.getId(), address.getContact().getId()));
+        });
+    }
+
+    // ==================== GET ADDRESS ====================
+
+    @Test
+    void testGetAddressUnauthorized() throws Exception {
+        Address address = createTestAddress(contact);
+
+        mockMvc.perform(
+                get("/api/contacts/" + contact.getId() + "/addresses/" + address.getId())
+                // tanpa header X-API-TOKEN
+        ).andExpectAll(
+                status().isUnauthorized()
+        ).andDo(result -> {
+            WebResponse<String> response = objectMapper.readValue(
+                    result.getResponse().getContentAsString(), new TypeReference<>() {});
+            assertNotNull(response.getErrors());
+        });
     }
 
     @Test
-    void createAddressSuccess() throws Exception {
-        CreateAddressRequest request = CreateAddressRequest.builder()
-                .street("Jalan Sudirman No. 45")
-                .city("Jakarta Selatan")
-                .province("DKI Jakarta")
-                .country("Indonesia")
-                .postalCode("12190")
-                .build();
+    void testGetAddressContactNotFound() throws Exception {
+        Address address = createTestAddress(contact);
 
-        String responseBody = mockMvc.perform(
-                post("/api/contacts/" + contactOfUserA.getId() + "/addresses")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .accept(MediaType.APPLICATION_JSON)
-                        .header("X-API-TOKEN", userA.getToken())
-                        .content(objectMapper.writeValueAsString(request))
+        String contactIdTidakAda = UUID.randomUUID().toString();
+
+        mockMvc.perform(
+                get("/api/contacts/" + contactIdTidakAda + "/addresses/" + address.getId())
+                        .header("X-API-TOKEN", "token-yoga")
         ).andExpectAll(
-                status().isOk() // sesuaikan jadi isCreated() kalau nanti controller diubah ke 201
-        ).andReturn().getResponse().getContentAsString();
+                status().isNotFound()
+        ).andDo(result -> {
+            WebResponse<String> response = objectMapper.readValue(
+                    result.getResponse().getContentAsString(), new TypeReference<>() {});
+            assertNotNull(response.getErrors());
+        });
+    }
 
-        WebResponse<AddressResponse> response = objectMapper.readValue(
-                responseBody,
-                new TypeReference<>() {
-                }
-        );
+    @Test
+    void testGetAddressNotFound() throws Exception {
+        // Contact lain milik user yang sama, addressId tidak berelasi ke contact ini
+        Contact anotherContact = new Contact();
+        anotherContact.setId(UUID.randomUUID().toString());
+        anotherContact.setFirstName("Contact");
+        anotherContact.setLastName("Lain");
+        anotherContact.setEmail("contactlain@example.com");
+        anotherContact.setPhone("081200000000");
+        anotherContact.setUser(user);
+        contactRepository.save(anotherContact);
 
-        assertNotNull(response.getData());
-        assertNotNull(response.getData().getId());
-        assertEquals("Jalan Sudirman No. 45", response.getData().getStreet());
-        assertEquals("Jakarta Selatan", response.getData().getCity());
-        assertEquals("DKI Jakarta", response.getData().getProvince());
-        assertEquals("Indonesia", response.getData().getCountry());
-        assertEquals("12190", response.getData().getPostalCode());
+        // address ini milik "contact", bukan "anotherContact"
+        Address address = createTestAddress(contact);
 
-        // pastikan benar-benar tersimpan & terhubung ke contact yang tepat
-        assertTrue(addressRepository.findById(response.getData().getId()).isPresent());
-        assertEquals(
-                contactOfUserA.getId(),
-                addressRepository.findById(response.getData().getId()).get().getContact().getId()
-        );
+        mockMvc.perform(
+                get("/api/contacts/" + anotherContact.getId() + "/addresses/" + address.getId())
+                        .header("X-API-TOKEN", "token-yoga")
+        ).andExpectAll(
+                status().isNotFound()
+        ).andDo(result -> {
+            WebResponse<String> response = objectMapper.readValue(
+                    result.getResponse().getContentAsString(), new TypeReference<>() {});
+            assertNotNull(response.getErrors());
+        });
+    }
+
+    @Test
+    void testGetAddressSuccess() throws Exception {
+        Address address = createTestAddress(contact);
+
+        mockMvc.perform(
+                get("/api/contacts/" + contact.getId() + "/addresses/" + address.getId())
+                        .header("X-API-TOKEN", "token-yoga")
+        ).andExpectAll(
+                status().isOk()
+        ).andDo(result -> {
+            WebResponse<AddressResponse> response = objectMapper.readValue(
+                    result.getResponse().getContentAsString(), new TypeReference<>() {});
+
+            assertNull(response.getErrors());
+            assertEquals(address.getId(), response.getData().getId());
+            assertEquals(address.getStreet(), response.getData().getStreet());
+            assertEquals(address.getCity(), response.getData().getCity());
+            assertEquals(address.getProvince(), response.getData().getProvince());
+            assertEquals(address.getCountry(), response.getData().getCountry());
+            assertEquals(address.getPostalCode(), response.getData().getPostalCode());
+        });
+    }
+
+    // ==================== HELPER ====================
+
+    private Address createTestAddress(Contact contact) {
+        Address address = new Address();
+        address.setId(UUID.randomUUID().toString());
+        address.setStreet("Jalan Sudirman No. 45");
+        address.setCity("Jakarta Selatan");
+        address.setProvince("DKI Jakarta");
+        address.setCountry("Indonesia");
+        address.setPostalCode("12190");
+        address.setContact(contact);
+        return addressRepository.save(address);
     }
 }
