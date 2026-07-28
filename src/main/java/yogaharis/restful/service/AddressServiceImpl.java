@@ -10,6 +10,7 @@ import yogaharis.restful.entity.Contact;
 import yogaharis.restful.entity.User;
 import yogaharis.restful.model.AddressResponse;
 import yogaharis.restful.model.CreateAddressRequest;
+import yogaharis.restful.model.UpdateAddressRequest;
 import yogaharis.restful.repository.AddressRepository;
 import yogaharis.restful.repository.ContactRepository;
 
@@ -62,6 +63,25 @@ public class AddressServiceImpl implements AddressService{
 
         Address address = addressRepository.findFirstByContactAndId(contact, addressId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Address not found"));
+
+        return toAddressResponse(address);
+    }
+
+    @Override
+    @Transactional
+    public AddressResponse update(User user, UpdateAddressRequest request) {
+        Contact contact = contactRepository.findFirstByUserAndId(user, request.getContactId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Contact not found"));
+
+        Address address = addressRepository.findFirstByContactAndId(contact, request.getAddressId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Address not found"));
+
+        address.setStreet(request.getStreet());
+        address.setCity(request.getCity());
+        address.setProvince(request.getProvince());
+        address.setCountry(request.getCountry());
+        address.setPostalCode(request.getPostalCode());
+        addressRepository.save(address);
 
         return toAddressResponse(address);
     }

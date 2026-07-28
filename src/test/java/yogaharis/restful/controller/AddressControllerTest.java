@@ -14,6 +14,7 @@ import yogaharis.restful.entity.Contact;
 import yogaharis.restful.entity.User;
 import yogaharis.restful.model.AddressResponse;
 import yogaharis.restful.model.CreateAddressRequest;
+import yogaharis.restful.model.UpdateAddressRequest;
 import yogaharis.restful.model.WebResponse;
 import yogaharis.restful.repository.AddressRepository;
 import yogaharis.restful.repository.ContactRepository;
@@ -23,8 +24,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
@@ -276,6 +276,199 @@ class AddressControllerTest {
             assertEquals(address.getProvince(), response.getData().getProvince());
             assertEquals(address.getCountry(), response.getData().getCountry());
             assertEquals(address.getPostalCode(), response.getData().getPostalCode());
+        });
+    }
+
+    // ==================== UPDATE ADDRESS ====================
+
+    @Test
+    void testUpdateAddressUnauthorized() throws Exception {
+        Address address = createTestAddress(contact);
+
+        UpdateAddressRequest request = UpdateAddressRequest.builder()
+                .street("Jalan Gatot Subroto No. 10")
+                .city("Jakarta Selatan")
+                .province("DKI Jakarta")
+                .country("Indonesia")
+                .postalCode("12930")
+                .build();
+
+        mockMvc.perform(
+                put("/api/contacts/" + contact.getId() + "/addresses/" + address.getId())
+                        // tanpa header X-API-TOKEN
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request))
+        ).andExpectAll(
+                status().isUnauthorized()
+        ).andDo(result -> {
+            WebResponse<String> response = objectMapper.readValue(
+                    result.getResponse().getContentAsString(), new TypeReference<>() {});
+            assertNotNull(response.getErrors());
+        });
+    }
+
+    @Test
+    void testUpdateAddressContactNotFound() throws Exception {
+        Address address = createTestAddress(contact);
+
+        String contactIdTidakAda = UUID.randomUUID().toString();
+
+        UpdateAddressRequest request = UpdateAddressRequest.builder()
+                .street("Jalan Gatot Subroto No. 10")
+                .city("Jakarta Selatan")
+                .province("DKI Jakarta")
+                .country("Indonesia")
+                .postalCode("12930")
+                .build();
+
+        mockMvc.perform(
+                put("/api/contacts/" + contactIdTidakAda + "/addresses/" + address.getId())
+                        .header("X-API-TOKEN", "token-yoga")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request))
+        ).andExpectAll(
+                status().isNotFound()
+        ).andDo(result -> {
+            WebResponse<String> response = objectMapper.readValue(
+                    result.getResponse().getContentAsString(), new TypeReference<>() {});
+            assertNotNull(response.getErrors());
+        });
+    }
+
+    @Test
+    void testUpdateAddressNotFound() throws Exception {
+        // Contact lain milik user yang sama, addressId tidak berelasi ke contact ini
+        Contact anotherContact = new Contact();
+        anotherContact.setId(UUID.randomUUID().toString());
+        anotherContact.setFirstName("Contact");
+        anotherContact.setLastName("Lain");
+        anotherContact.setEmail("contactlain@example.com");
+        anotherContact.setPhone("081200000000");
+        anotherContact.setUser(user);
+        contactRepository.save(anotherContact);
+
+        // address ini milik "contact", bukan "anotherContact"
+        Address address = createTestAddress(contact);
+
+        UpdateAddressRequest request = UpdateAddressRequest.builder()
+                .street("Jalan Gatot Subroto No. 10")
+                .city("Jakarta Selatan")
+                .province("DKI Jakarta")
+                .country("Indonesia")
+                .postalCode("12930")
+                .build();
+
+        mockMvc.perform(
+                put("/api/contacts/" + anotherContact.getId() + "/addresses/" + address.getId())
+                        .header("X-API-TOKEN", "token-yoga")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request))
+        ).andExpectAll(
+                status().isNotFound()
+        ).andDo(result -> {
+            WebResponse<String> response = objectMapper.readValue(
+                    result.getResponse().getContentAsString(), new TypeReference<>() {});
+            assertNotNull(response.getErrors());
+        });
+    }
+
+    @Test
+    void testUpdateAddressAnotherUser() throws Exception {
+        User anotherUser = new User();
+        anotherUser.setUsername("budi");
+        anotherUser.setPassword("rahasia");
+        anotherUser.setName("Budi Lain");
+        anotherUser.setToken("token-budi");
+        anotherUser.setExpiredAt(Instant.now().plusSeconds(3600).toEpochMilli());
+        userRepository.save(anotherUser);
+
+        Address address = createTestAddress(contact);
+
+        UpdateAddressRequest request = UpdateAddressRequest.builder()
+                .street("Jalan Gatot Subroto No. 10")
+                .city("Jakarta Selatan")
+                .province("DKI Jakarta")
+                .country("Indonesia")
+                .postalCode("12930")
+                .build();
+
+        // User B mencoba update address milik contact User A
+        mockMvc.perform(
+                put("/api/contacts/" + contact.getId() + "/addresses/" + address.getId())
+                        .header("X-API-TOKEN", "token-budi")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request))
+        ).andExpectAll(
+                status().isNotFound()
+        ).andDo(result -> {
+            WebResponse<String> response = objectMapper.readValue(
+                    result.getResponse().getContentAsString(), new TypeReference<>() {});
+            assertNotNull(response.getErrors());
+        });
+    }
+
+    @Test
+    void testUpdateAddressBadRequest() throws Exception {
+        Address address = createTestAddress(contact);
+
+        UpdateAddressRequest request = UpdateAddressRequest.builder()
+                .street("Jalan Gatot Subroto No. 10")
+                .city("Jakarta Selatan")
+                .province("DKI Jakarta")
+                .country("") // kosong, melanggar @NotBlank
+                .postalCode("12930")
+                .build();
+
+        mockMvc.perform(
+                put("/api/contacts/" + contact.getId() + "/addresses/" + address.getId())
+                        .header("X-API-TOKEN", "token-yoga")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request))
+        ).andExpectAll(
+                status().isBadRequest()
+        ).andDo(result -> {
+            WebResponse<String> response = objectMapper.readValue(
+                    result.getResponse().getContentAsString(), new TypeReference<>() {});
+            assertNotNull(response.getErrors());
+        });
+    }
+
+    @Test
+    void testUpdateAddressSuccess() throws Exception {
+        Address address = createTestAddress(contact);
+
+        UpdateAddressRequest request = UpdateAddressRequest.builder()
+                .street("Jalan Gatot Subroto No. 10")
+                .city("Jakarta Selatan")
+                .province("DKI Jakarta")
+                .country("Indonesia")
+                .postalCode("12930")
+                .build();
+
+        mockMvc.perform(
+                put("/api/contacts/" + contact.getId() + "/addresses/" + address.getId())
+                        .header("X-API-TOKEN", "token-yoga")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request))
+        ).andExpectAll(
+                status().isOk()
+        ).andDo(result -> {
+            WebResponse<AddressResponse> response = objectMapper.readValue(
+                    result.getResponse().getContentAsString(), new TypeReference<>() {});
+
+            assertNull(response.getErrors());
+            assertEquals(address.getId(), response.getData().getId());
+            assertEquals("Jalan Gatot Subroto No. 10", response.getData().getStreet());
+            assertEquals("Jakarta Selatan", response.getData().getCity());
+            assertEquals("DKI Jakarta", response.getData().getProvince());
+            assertEquals("Indonesia", response.getData().getCountry());
+            assertEquals("12930", response.getData().getPostalCode());
+
+            // pastikan data di database benar-benar berubah
+            addressRepository.findById(response.getData().getId()).ifPresent(updated -> {
+                assertEquals("Jalan Gatot Subroto No. 10", updated.getStreet());
+                assertEquals("12930", updated.getPostalCode());
+            });
         });
     }
 
