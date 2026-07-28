@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import yogaharis.restful.entity.User;
 import yogaharis.restful.model.AddressResponse;
 import yogaharis.restful.model.CreateAddressRequest;
+import yogaharis.restful.model.UpdateAddressRequest;
 import yogaharis.restful.model.WebResponse;
 import yogaharis.restful.service.AddressService;
 
@@ -41,11 +42,28 @@ public class AddressController {
     )
     public WebResponse<AddressResponse> get(
             User user,
-            @NotBlank(message = "contact id cannot blank") @PathVariable(name = "contactId") String contactId,
-            @NotBlank(message = "address id cannot blank") @PathVariable(name = "addressId") String addressId
+            @NotBlank(message = "{contactId.notBlank}") @PathVariable(name = "contactId") String contactId,
+            @NotBlank(message = "{addressId.notBlank}") @PathVariable(name = "addressId") String addressId
     ){
         AddressResponse addressResponse = addressService.get(user, contactId, addressId);
 
+        return WebResponse.<AddressResponse>builder().data(addressResponse).build();
+    }
+
+    @PutMapping(
+            path = "/api/contacts/{contactId}/addresses/{addressId}",
+            consumes = MediaType.APPLICATION_JSON_VALUE,
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public WebResponse<AddressResponse> update(
+            User user,
+            @RequestBody UpdateAddressRequest request,
+            @NotBlank(message = "{contactId.notBlank}") @PathVariable(name = "contactId") String contactId,
+            @NotBlank(message = "{addressId.notBlank}") @PathVariable(name = "addressId") String addressId
+    ){
+        request.setContactId(contactId);
+        request.setAddressId(addressId);
+        AddressResponse addressResponse = addressService.update(user, request);
         return WebResponse.<AddressResponse>builder().data(addressResponse).build();
     }
 }
