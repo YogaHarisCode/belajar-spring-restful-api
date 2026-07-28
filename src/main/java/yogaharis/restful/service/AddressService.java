@@ -13,7 +13,9 @@ public interface AddressService {
 
     AddressResponse create(User user, @Valid CreateAddressRequest request);
 
-    AddressResponse get(User user, @NotBlank(message = "contact id cannot blank") String contactId, @NotBlank(message = "address id cannot blank") String addressId);
+    AddressResponse get(User user, @NotBlank(message = "{contactId.notBlank}") String contactId, @NotBlank(message = "{addressId.notBlank}") String addressId);
 
     AddressResponse update(User user, @Valid UpdateAddressRequest request);
+
+    void remove(User user, @NotBlank(message = "{contactId.notBlank}") String contactId, @NotBlank(message = "{addressId.notBlank}") String addressId);
 }
