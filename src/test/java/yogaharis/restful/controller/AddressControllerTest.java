@@ -472,6 +472,122 @@ class AddressControllerTest {
         });
     }
 
+    // ==================== REMOVE ADDRESS ====================
+
+    @Test
+    void testRemoveAddressUnauthorized() throws Exception {
+        Address address = createTestAddress(contact);
+
+        mockMvc.perform(
+                delete("/api/contacts/" + contact.getId() + "/addresses/" + address.getId())
+                // tanpa header X-API-TOKEN
+        ).andExpectAll(
+                status().isUnauthorized()
+        ).andDo(result -> {
+            WebResponse<String> response = objectMapper.readValue(
+                    result.getResponse().getContentAsString(), new TypeReference<>() {});
+            assertNotNull(response.getErrors());
+        });
+    }
+
+    @Test
+    void testRemoveAddressContactNotFound() throws Exception {
+        Address address = createTestAddress(contact);
+
+        String contactIdTidakAda = UUID.randomUUID().toString();
+
+        mockMvc.perform(
+                delete("/api/contacts/" + contactIdTidakAda + "/addresses/" + address.getId())
+                        .header("X-API-TOKEN", "token-yoga")
+        ).andExpectAll(
+                status().isNotFound()
+        ).andDo(result -> {
+            WebResponse<String> response = objectMapper.readValue(
+                    result.getResponse().getContentAsString(), new TypeReference<>() {});
+            assertNotNull(response.getErrors());
+        });
+
+        // pastikan data tidak ikut terhapus karena request gagal
+        assertTrue(addressRepository.existsById(address.getId()));
+    }
+
+    @Test
+    void testRemoveAddressNotFound() throws Exception {
+        // Contact lain milik user yang sama, addressId tidak berelasi ke contact ini
+        Contact anotherContact = new Contact();
+        anotherContact.setId(UUID.randomUUID().toString());
+        anotherContact.setFirstName("Contact");
+        anotherContact.setLastName("Lain");
+        anotherContact.setEmail("contactlain@example.com");
+        anotherContact.setPhone("081200000000");
+        anotherContact.setUser(user);
+        contactRepository.save(anotherContact);
+
+        // address ini milik "contact", bukan "anotherContact"
+        Address address = createTestAddress(contact);
+
+        mockMvc.perform(
+                delete("/api/contacts/" + anotherContact.getId() + "/addresses/" + address.getId())
+                        .header("X-API-TOKEN", "token-yoga")
+        ).andExpectAll(
+                status().isNotFound()
+        ).andDo(result -> {
+            WebResponse<String> response = objectMapper.readValue(
+                    result.getResponse().getContentAsString(), new TypeReference<>() {});
+            assertNotNull(response.getErrors());
+        });
+
+        assertTrue(addressRepository.existsById(address.getId()));
+    }
+
+    @Test
+    void testRemoveAddressAnotherUser() throws Exception {
+        User anotherUser = new User();
+        anotherUser.setUsername("budi");
+        anotherUser.setPassword("rahasia");
+        anotherUser.setName("Budi Lain");
+        anotherUser.setToken("token-budi");
+        anotherUser.setExpiredAt(Instant.now().plusSeconds(3600).toEpochMilli());
+        userRepository.save(anotherUser);
+
+        Address address = createTestAddress(contact);
+
+        // User B mencoba hapus address milik contact User A
+        mockMvc.perform(
+                delete("/api/contacts/" + contact.getId() + "/addresses/" + address.getId())
+                        .header("X-API-TOKEN", "token-budi")
+        ).andExpectAll(
+                status().isNotFound()
+        ).andDo(result -> {
+            WebResponse<String> response = objectMapper.readValue(
+                    result.getResponse().getContentAsString(), new TypeReference<>() {});
+            assertNotNull(response.getErrors());
+        });
+
+        assertTrue(addressRepository.existsById(address.getId()));
+    }
+
+    @Test
+    void testRemoveAddressSuccess() throws Exception {
+        Address address = createTestAddress(contact);
+
+        mockMvc.perform(
+                delete("/api/contacts/" + contact.getId() + "/addresses/" + address.getId())
+                        .header("X-API-TOKEN", "token-yoga")
+        ).andExpectAll(
+                status().isOk()
+        ).andDo(result -> {
+            WebResponse<String> response = objectMapper.readValue(
+                    result.getResponse().getContentAsString(), new TypeReference<>() {});
+
+            assertNull(response.getErrors());
+            assertEquals("OK", response.getData());
+        });
+
+        // pastikan data benar-benar terhapus permanen dari database
+        assertFalse(addressRepository.existsById(address.getId()));
+    }
+
     // ==================== HELPER ====================
 
     private Address createTestAddress(Contact contact) {
