@@ -12,6 +12,8 @@ import yogaharis.restful.model.UpdateAddressRequest;
 import yogaharis.restful.model.WebResponse;
 import yogaharis.restful.service.AddressService;
 
+import java.util.List;
+
 @RestController
 @AllArgsConstructor
 @Validated
@@ -78,5 +80,17 @@ public class AddressController {
     ){
         addressService.remove(user, contactId, addressId);
         return WebResponse.<String>builder().data("OK").build();
+    }
+
+    @GetMapping(
+            path = "/api/contacts/{contactId}/addresses",
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public WebResponse<List<AddressResponse>> list(
+            User user,
+            @NotBlank(message = "{contactId.notBlank}") @PathVariable(name = "contactId") String contactId
+    ){
+        List<AddressResponse> addressResponses = addressService.list(user, contactId);
+        return WebResponse.<List<AddressResponse>>builder().data(addressResponses).build();
     }
 }
