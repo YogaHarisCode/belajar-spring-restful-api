@@ -5,10 +5,13 @@ import org.springframework.stereotype.Repository;
 import yogaharis.restful.entity.Address;
 import yogaharis.restful.entity.Contact;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface AddressRepository extends JpaRepository<Address, String> {
 
     Optional<Address> findFirstByContactAndId(Contact contact, String id);
+
+    List<Address> findAllByContact(Contact contact);
 }

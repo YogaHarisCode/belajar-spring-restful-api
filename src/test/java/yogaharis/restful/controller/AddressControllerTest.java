@@ -21,6 +21,7 @@ import yogaharis.restful.repository.ContactRepository;
 import yogaharis.restful.repository.UserRepository;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -586,6 +587,115 @@ class AddressControllerTest {
 
         // pastikan data benar-benar terhapus permanen dari database
         assertFalse(addressRepository.existsById(address.getId()));
+    }
+
+    // ==================== LIST ADDRESS ====================
+
+    @Test
+    void testListAddressUnauthorized() throws Exception {
+        mockMvc.perform(
+                get("/api/contacts/" + contact.getId() + "/addresses")
+                // tanpa header X-API-TOKEN
+        ).andExpectAll(
+                status().isUnauthorized()
+        ).andDo(result -> {
+            WebResponse<String> response = objectMapper.readValue(
+                    result.getResponse().getContentAsString(), new TypeReference<>() {});
+            assertNotNull(response.getErrors());
+        });
+    }
+
+    @Test
+    void testListAddressContactNotFound() throws Exception {
+        String contactIdTidakAda = UUID.randomUUID().toString();
+
+        mockMvc.perform(
+                get("/api/contacts/" + contactIdTidakAda + "/addresses")
+                        .header("X-API-TOKEN", "token-yoga")
+        ).andExpectAll(
+                status().isNotFound()
+        ).andDo(result -> {
+            WebResponse<String> response = objectMapper.readValue(
+                    result.getResponse().getContentAsString(), new TypeReference<>() {});
+            assertNotNull(response.getErrors());
+        });
+    }
+
+    @Test
+    void testListAddressAnotherUser() throws Exception {
+        User anotherUser = new User();
+        anotherUser.setUsername("budi");
+        anotherUser.setPassword("rahasia");
+        anotherUser.setName("Budi Lain");
+        anotherUser.setToken("token-budi");
+        anotherUser.setExpiredAt(Instant.now().plusSeconds(3600).toEpochMilli());
+        userRepository.save(anotherUser);
+
+        createTestAddress(contact);
+
+        // User B mencoba list address milik contact User A
+        mockMvc.perform(
+                get("/api/contacts/" + contact.getId() + "/addresses")
+                        .header("X-API-TOKEN", "token-budi")
+        ).andExpectAll(
+                status().isNotFound()
+        ).andDo(result -> {
+            WebResponse<String> response = objectMapper.readValue(
+                    result.getResponse().getContentAsString(), new TypeReference<>() {});
+            assertNotNull(response.getErrors());
+        });
+    }
+
+    @Test
+    void testListAddressSuccessEmpty() throws Exception {
+        // contact belum punya address sama sekali
+        mockMvc.perform(
+                get("/api/contacts/" + contact.getId() + "/addresses")
+                        .header("X-API-TOKEN", "token-yoga")
+        ).andExpectAll(
+                status().isOk()
+        ).andDo(result -> {
+            WebResponse<List<AddressResponse>> response = objectMapper.readValue(
+                    result.getResponse().getContentAsString(), new TypeReference<>() {});
+
+            assertNull(response.getErrors());
+            assertNotNull(response.getData());
+            assertTrue(response.getData().isEmpty());
+        });
+    }
+
+    @Test
+    void testListAddressSuccess() throws Exception {
+        Address address1 = createTestAddress(contact);
+
+        Address address2 = new Address();
+        address2.setId(UUID.randomUUID().toString());
+        address2.setStreet("Jalan MH Thamrin No. 1");
+        address2.setCity("Jakarta Pusat");
+        address2.setProvince("DKI Jakarta");
+        address2.setCountry("Indonesia");
+        address2.setPostalCode("10310");
+        address2.setContact(contact);
+        addressRepository.save(address2);
+
+        mockMvc.perform(
+                get("/api/contacts/" + contact.getId() + "/addresses")
+                        .header("X-API-TOKEN", "token-yoga")
+        ).andExpectAll(
+                status().isOk()
+        ).andDo(result -> {
+            WebResponse<List<AddressResponse>> response = objectMapper.readValue(
+                    result.getResponse().getContentAsString(), new TypeReference<>() {});
+
+            assertNull(response.getErrors());
+            assertEquals(2, response.getData().size());
+
+            List<String> addressIds = response.getData().stream()
+                    .map(AddressResponse::getId)
+                    .toList();
+            assertTrue(addressIds.contains(address1.getId()));
+            assertTrue(addressIds.contains(address2.getId()));
+        });
     }
 
     // ==================== HELPER ====================
