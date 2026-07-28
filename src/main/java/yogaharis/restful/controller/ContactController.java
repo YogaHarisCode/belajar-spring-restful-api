@@ -3,15 +3,15 @@ package yogaharis.restful.controller;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.AllArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.http.MediaType;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import yogaharis.restful.entity.User;
-import yogaharis.restful.model.ContactResponse;
-import yogaharis.restful.model.CreateContactRequest;
-import yogaharis.restful.model.UpdateContactRequest;
-import yogaharis.restful.model.WebResponse;
+import yogaharis.restful.model.*;
 import yogaharis.restful.service.ContactService;
+
+import java.util.List;
 
 @RestController
 @Validated
@@ -61,5 +61,34 @@ public class ContactController {
                                       @NotBlank(message = "id cannot blank") @PathVariable(name = "contactId") String id){
         contactService.delete(user, id);
         return WebResponse.<String>builder().data("OK").build();
+    }
+
+    @GetMapping(
+            path = "/api/contacts",
+            produces = MediaType.APPLICATION_JSON_VALUE
+    )
+    public WebResponse<List<ContactResponse>> search(User user,
+                                                     @RequestParam(name = "name", required = false) String name,
+                                                     @RequestParam(name = "email", required = false) String email,
+                                                     @RequestParam(name = "phone", required = false) String phone,
+                                                     @RequestParam(name = "page", required = false, defaultValue = "0") Integer page,
+                                                     @RequestParam(name = "size", required = false, defaultValue = "10") Integer size){
+        SearchContactRequest request = SearchContactRequest.builder()
+                .name(name)
+                .email(email)
+                .phone(phone)
+                .page(page)
+                .size(size)
+                .build();
+
+        Page<ContactResponse> contactResponses = contactService.search(user, request);
+
+        PagingResponse paging = PagingResponse.builder()
+                .currentPage(contactResponses.getNumber())
+                .size(contactResponses.getSize())
+                .totalPage(contactResponses.getTotalPages())
+                .build();
+
+        return WebResponse.<List<ContactResponse>>builder().data(contactResponses.getContent()).pagingResponse(paging).build();
     }
 }

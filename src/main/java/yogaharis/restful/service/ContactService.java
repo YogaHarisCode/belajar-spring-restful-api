@@ -2,10 +2,12 @@ package yogaharis.restful.service;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import org.springframework.data.domain.Page;
 import org.springframework.validation.annotation.Validated;
 import yogaharis.restful.entity.User;
 import yogaharis.restful.model.ContactResponse;
 import yogaharis.restful.model.CreateContactRequest;
+import yogaharis.restful.model.SearchContactRequest;
 import yogaharis.restful.model.UpdateContactRequest;
 
 @Validated
@@ -18,4 +20,6 @@ public interface ContactService {
     ContactResponse update(User user, @Valid UpdateContactRequest request);
 
     void delete(User user, @NotBlank(message = "id cannot blank") String id);
+
+    Page<ContactResponse> search(User user, @Valid SearchContactRequest request);
 }
