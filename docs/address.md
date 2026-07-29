@@ -3,7 +3,7 @@
 Spesifikasi RESTful API untuk fitur **Address Management**. Data alamat (*address*) terikat secara langsung dengan data kontak (*contact*).
 
 Seluruh endpoint pada modul ini membutuhkan autentikasi menggunakan **Request Header wajib**:
-`X-TOKEN-API: <token>`
+`X-API-TOKEN: <token>`
 
 ---
 
@@ -12,7 +12,7 @@ Membuat data alamat baru untuk kontak tertentu.
 
 * **Endpoint:** `POST /api/contacts/{contactId}/addresses`
 * **Request Header:**
-  * `X-TOKEN-API: <token>` *(Mandatory)*
+  * `X-API-TOKEN: <token>` *(Mandatory)*
   * `Content-Type: application/json`
   * `Accept: application/json`
 * **Request Body:**
@@ -64,7 +64,7 @@ Mengambil detail data alamat tertentu milik kontak tertentu.
 
 * **Endpoint:** `GET /api/contacts/{contactId}/addresses/{addressId}`
 * **Request Header:**
-  * `X-TOKEN-API: <token>` *(Mandatory)*
+  * `X-API-TOKEN: <token>` *(Mandatory)*
   * `Accept: application/json`
 * **Request Body:** (Kosong)
 * **Response Body Success (200 OK):**
@@ -100,7 +100,7 @@ Memperbarui data alamat milik kontak tertentu.
 
 * **Endpoint:** `PUT /api/contacts/{contactId}/addresses/{addressId}`
 * **Request Header:**
-  * `X-TOKEN-API: <token>` *(Mandatory)*
+  * `X-API-TOKEN: <token>` *(Mandatory)*
   * `Content-Type: application/json`
   * `Accept: application/json`
 * **Request Body:**
@@ -152,7 +152,7 @@ Mengambil seluruh daftar alamat milik kontak tertentu.
 
 * **Endpoint:** `GET /api/contacts/{contactId}/addresses`
 * **Request Header:**
-  * `X-TOKEN-API: <token>` *(Mandatory)*
+  * `X-API-TOKEN: <token>` *(Mandatory)*
   * `Accept: application/json`
 * **Request Body:** (Kosong)
 * **Response Body Success (200 OK):**
@@ -198,7 +198,7 @@ Menghapus data alamat milik kontak tertentu.
 
 * **Endpoint:** `DELETE /api/contacts/{contactId}/addresses/{addressId}`
 * **Request Header:**
-  * `X-TOKEN-API: <token>` *(Mandatory)*
+  * `X-API-TOKEN: <token>` *(Mandatory)*
   * `Accept: application/json`
 * **Request Body:** (Kosong)
 * **Response Body Success (200 OK):**
