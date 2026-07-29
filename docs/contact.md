@@ -3,7 +3,7 @@
 Spesifikasi RESTful API untuk fitur **Contact Management**. 
 
 Seluruh endpoint pada modul ini membutuhkan autentikasi menggunakan **Request Header wajib**:
-`X-TOKEN-API: <token>`
+`X-API-TOKEN: <token>`
 
 ---
 
@@ -12,7 +12,7 @@ Membuat data kontak baru.
 
 * **Endpoint:** `POST /api/contacts`
 * **Request Header:**
-  * `X-TOKEN-API: <token>` *(Mandatory)*
+  * `X-API-TOKEN: <token>` *(Mandatory)*
   * `Content-Type: application/json`
   * `Accept: application/json`
 * **Request Body:**
@@ -56,7 +56,7 @@ Mengambil detail data kontak berdasarkan ID (UUID).
 
 * **Endpoint:** `GET /api/contacts/{contactId}`
 * **Request Header:**
-  * `X-TOKEN-API: <token>` *(Mandatory)*
+  * `X-API-TOKEN: <token>` *(Mandatory)*
   * `Accept: application/json`
 * **Request Body:** (Kosong)
 * **Response Body Success (200 OK):**
@@ -91,7 +91,7 @@ Memperbarui data kontak berdasarkan ID (UUID).
 
 * **Endpoint:** `PUT /api/contacts/{contactId}`
 * **Request Header:**
-  * `X-TOKEN-API: <token>` *(Mandatory)*
+  * `X-API-TOKEN: <token>` *(Mandatory)*
   * `Content-Type: application/json`
   * `Accept: application/json`
 * **Request Body:**
@@ -147,7 +147,7 @@ Mencari data kontak pengguna berdasarkan nama, email, atau telepon dengan pagina
   * `page` (integer, default: 0): Nomor halaman
   * `size` (integer, default: 10): Jumlah data per halaman
 * **Request Header:**
-  * `X-TOKEN-API: <token>` *(Mandatory)*
+  * `X-API-TOKEN: <token>` *(Mandatory)*
   * `Accept: application/json`
 * **Request Body:** (Kosong)
 * **Response Body Success (200 OK):**
@@ -183,7 +183,7 @@ Menghapus data kontak berdasarkan ID (UUID).
 
 * **Endpoint:** `DELETE /api/contacts/{contactId}`
 * **Request Header:**
-  * `X-TOKEN-API: <token>` *(Mandatory)*
+  * `X-API-TOKEN: <token>` *(Mandatory)*
   * `Accept: application/json`
 * **Request Body:** (Kosong)
 * **Response Body Success (200 OK):**
